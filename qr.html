@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>WhatsApp QR</title>
+  <style>
+    body { background:#fff; margin:0; min-height:100vh; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; font-family:system-ui,sans-serif; gap:12px; }
+    img  { width:460px; height:460px; image-rendering:pixelated; border:1px solid #ddd; }
+    .h   { font-size:20px; font-weight:600; }
+    .s   { color:#666; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="h">Escanea con WhatsApp</div>
+  <div class="s">Móvil → Ajustes → Dispositivos vinculados → Vincular dispositivo</div>
+  <img id="q" src="wa-qr.png" alt="QR">
+  <div class="s">El QR se refresca solo cada 3s — no caduca mientras escaneas</div>
+  <script>
+    setInterval(() => {
+      document.getElementById("q").src = "wa-qr.png?t=" + Date.now();
+    }, 3000);
+  </script>
+</body>
+</html>

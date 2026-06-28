@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFile } from "node:fs/promises";
 import qrcode from "qrcode-terminal";
+import QRCode from "qrcode";
 import wweb from "whatsapp-web.js";
 
 const { Client, LocalAuth, MessageMedia } = wweb;
@@ -19,9 +20,15 @@ const client = new Client({
   puppeteer: { headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] },
 });
 
-client.on("qr", (qr) => {
+client.on("qr", async (qr) => {
   console.log("Escanea este QR con WhatsApp (Dispositivos vinculados):\n");
   qrcode.generate(qr, { small: true });
+  try {
+    await QRCode.toFile(join(ROOT, "wa-qr.png"), qr, { width: 512, margin: 2 });
+    console.log("QR PNG -> wa-qr.png");
+  } catch (e) {
+    console.warn("no pude escribir wa-qr.png:", e.message);
+  }
 });
 
 client.on("auth_failure", (m) => console.error("Auth fallo:", m));
