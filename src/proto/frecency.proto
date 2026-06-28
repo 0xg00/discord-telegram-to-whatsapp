@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+// Minimal slice of Discord's FrecencyUserSettings.
+// We only care about the path: field 2 -> FavoriteStickers -> field 1 sticker_ids.
+// Endpoint: GET /users/@me/settings-proto/2  (returns base64 protobuf)
+// Unknown fields are ignored by protobufjs, so we don't model the rest.
+
+message FavoriteStickers {
+  repeated fixed64 sticker_ids = 1;
+}
+
+message FrecencyUserSettings {
+  FavoriteStickers favorite_stickers = 2;
+}
