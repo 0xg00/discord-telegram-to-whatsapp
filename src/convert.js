@@ -1,4 +1,7 @@
 import sharp from "sharp";
+import { spawn } from "node:child_process";
+import { stat } from "node:fs/promises";
+import ffmpegPath from "ffmpeg-static";
 
 // WhatsApp sticker rules: WebP 512x512, static <100KB, animated <500KB.
 const SIZE = 512;
@@ -89,5 +92,41 @@ export async function isAnimated(inputPath) {
   } catch {
     return false;
   }
+}
+
+// ---- ffmpeg-based animated WebP encoding (for gif/mp4/webm and frame sequences) ----
+
+function runFfmpeg(inputArgs, vf, quality, outPath) {
+  const args = ["-y", ...inputArgs, "-vcodec", "libwebp", "-filter:v", vf,
+    "-lossless", "0", "-compression_level", "5", "-q:v", String(quality),
+    "-loop", "0", "-preset", "default", "-an", "-vsync", "0", outPath];
+  return new Promise((resolve, reject) => {
+    const p = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "ignore"] });
+    p.on("error", reject);
+    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg salio ${code}`))));
+  });
+}
+
+// Encode an animated WebP that fits WhatsApp's 500KB budget, stepping
+// fps/quality/scale down until it fits.
+// input: { file } for a media file, or { pattern, framerate } for a PNG sequence.
+export async function ffmpegAnimatedUnderBudget(input, outPath) {
+  const inputArgs = input.pattern
+    ? ["-framerate", String(input.framerate), "-i", input.pattern]
+    : ["-i", input.file];
+  const ladders = [
+    [512, [[15, 75], [12, 55], [10, 40], [8, 28], [6, 20]]],
+    [400, [[10, 38], [8, 24]]],
+    [320, [[8, 24], [6, 14]]],
+    [256, [[6, 14], [5, 10], [4, 8]]],
+  ];
+  for (const [scale, steps] of ladders) {
+    for (const [fps, q] of steps) {
+      const vf = `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=#00000000`;
+      await runFfmpeg(inputArgs, vf, q, outPath);
+      if ((await stat(outPath)).size <= MAX_ANIMATED) return;
+    }
+  }
+  // keep last attempt even if slightly over
 }
 

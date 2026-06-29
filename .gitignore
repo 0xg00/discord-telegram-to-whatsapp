@@ -8,5 +8,9 @@ stickers/gif-raw/
 stickers/gif-webp/
 stickers/manifest.json
 stickers/manifest_gifs.json
+stickers/manifest_telegram.json
 stickers/sent.json
+stickers/tg-raw/
+stickers/tg-webp/
+.tg_session
 wa-qr.png
