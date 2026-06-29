@@ -33,40 +33,59 @@ client.on("qr", async (qr) => {
 
 client.on("auth_failure", (m) => console.error("Auth fallo:", m));
 
-client.on("ready", async () => {
-  console.log("WhatsApp listo.");
+// track server ACKs: sendMessage resolves on local queue, NOT on delivery.
+// We must wait for ack >= 1 (server received) or messages get silently dropped.
+const ackWaiters = new Map(); // msgId -> resolve
+client.on("message_ack", (msg, ack) => {
+  const id = msg.id?._serialized;
+  const r = id && ackWaiters.get(id);
+  if (r && ack >= 1) { ackWaiters.delete(id); r(ack); }
+});
+function waitForAck(id, ms = 20000) {
+  return new Promise((resolve) => {
+    ackWaiters.set(id, resolve);
+    setTimeout(() => { if (ackWaiters.delete(id)) resolve(0); }, ms);
+  });
+}
 
-  // target: WA_TARGET_CHAT del .env, o tu propio chat (mandartelo a ti mismo)
+client.on("ready", async () => {
+  console.log("WhatsApp listo. Esperando sync...");
+  await sleep(6000); // settle: sending too early drops messages
+
   const target = process.env.WA_TARGET_CHAT || client.info.wid._serialized;
-  console.log(`Mandando stickers a: ${target}`);
+  const limit = Number(process.env.LIMIT || 0);
+  const offset = Number(process.env.OFFSET || 0);
+  const delayMs = Number(process.env.DELAY_MS || 2500);
 
   const manifestFile = process.env.MANIFEST || "manifest.json";
-  console.log(`Manifest: ${manifestFile}`);
-  const manifest = JSON.parse(await readFile(join(STICKERS, manifestFile), "utf8"));
-  const items = manifest.filter((m) => m.webp);
-  console.log(`Stickers a mandar: ${items.length}`);
+  let items = JSON.parse(await readFile(join(STICKERS, manifestFile), "utf8")).filter((m) => m.webp);
+  if (offset > 0) items = items.slice(offset);
+  if (limit > 0) items = items.slice(0, limit);
+  console.log(`Destino: ${target} | manifest: ${manifestFile} | a mandar: ${items.length}`);
 
-  let sent = 0;
+  const chat = await client.getChatById(target);
+
+  let sent = 0, acked = 0;
   for (const [i, m] of items.entries()) {
     const tag = `[${i + 1}/${items.length}] "${m.name}"`;
     try {
-      const path = join(STICKERS, m.webp);
-      const b64 = (await readFile(path)).toString("base64");
-      const media = new MessageMedia("image/webp", b64, `${m.id}.webp`);
-      await client.sendMessage(target, media, {
+      const media = MessageMedia.fromFilePath(join(STICKERS, m.webp));
+      const msg = await chat.sendMessage(media, {
         sendMediaAsSticker: true,
         stickerName: m.name,
         stickerAuthor: "Discord",
       });
       sent++;
-      console.log(`${tag} enviado`);
+      const ack = await waitForAck(msg.id._serialized); // block until server confirms
+      if (ack >= 1) acked++;
+      console.log(`${tag} enviado ack=${ack}`);
     } catch (err) {
       console.warn(`${tag} FALLO: ${err.message}`);
     }
-    await sleep(1500); // evita deteccion de spam
+    await sleep(delayMs);
   }
 
-  console.log(`\nListo. ${sent}/${items.length} stickers enviados.`);
+  console.log(`\nListo. enviados=${sent} | confirmados_servidor=${acked}/${items.length}`);
   console.log("Cierra con Ctrl+C. La sesion queda guardada en .wwebjs_auth");
   await client.destroy();
   process.exit(0);
