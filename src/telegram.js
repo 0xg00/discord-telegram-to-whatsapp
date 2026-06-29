@@ -25,6 +25,7 @@ try { process.loadEnvFile(join(ROOT, ".env")); } catch { /* optional */ }
 const API_ID = Number(process.env.TG_API_ID);
 const API_HASH = process.env.TG_API_HASH;
 const LIMIT_PACKS = Number(process.env.TG_LIMIT_PACKS || 0);
+const SKIP_PACKS = Number(process.env.TG_SKIP_PACKS || 0);
 
 if (!API_ID || !API_HASH) {
   console.error("ERROR: falta TG_API_ID / TG_API_HASH en .env (sacalos de my.telegram.org)");
@@ -54,11 +55,29 @@ async function main() {
   const saved = existsSync(SESSION_FILE) ? await readFile(SESSION_FILE, "utf8") : "";
   const client = new TelegramClient(new StringSession(saved), API_ID, API_HASH, { connectionRetries: 5 });
 
+  // When run interactively (TTY) we prompt; when driven in background we read
+  // the login code from a .tg_code file (assistant writes it after you give it).
+  const CODE_FILE = join(ROOT, ".tg_code");
+  const TFA_FILE = join(ROOT, ".tg_2fa");
+  async function fromFileOrAsk(file, promptMsg, envVal) {
+    if (envVal) return envVal;
+    if (stdin.isTTY) return await ask(promptMsg);
+    console.log(`Esperando ${file} (escribe el valor ahi)...`);
+    for (let i = 0; i < 180; i++) {
+      if (existsSync(file)) {
+        const v = (await readFile(file, "utf8")).trim();
+        if (v) { await rm(file, { force: true }); return v; }
+      }
+      await sleep(1000);
+    }
+    throw new Error(`timeout esperando ${file}`);
+  }
+
   console.log("Conectando a Telegram...");
   await client.start({
     phoneNumber: async () => process.env.TG_PHONE || (await ask("Telefono (+34...): ")),
-    password: async () => await ask("Password 2FA (vacio si no tienes): "),
-    phoneCode: async () => await ask("Codigo recibido en Telegram: "),
+    password: async () => await fromFileOrAsk(TFA_FILE, "Password 2FA: ", process.env.TG_2FA),
+    phoneCode: async () => await fromFileOrAsk(CODE_FILE, "Codigo recibido en Telegram: "),
     onError: (e) => console.log("Error login:", e.message),
   });
   await writeFile(SESSION_FILE, String(client.session.save()));
@@ -67,6 +86,7 @@ async function main() {
   console.log("Listando tus packs de stickers...");
   const all = await client.invoke(new Api.messages.GetAllStickers({ hash: bigInt(0) }));
   let sets = all.sets || [];
+  if (SKIP_PACKS > 0) sets = sets.slice(SKIP_PACKS);
   if (LIMIT_PACKS > 0) sets = sets.slice(0, LIMIT_PACKS);
   console.log(`Packs: ${sets.length}\n`);
 
