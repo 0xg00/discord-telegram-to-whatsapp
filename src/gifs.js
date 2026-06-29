@@ -30,8 +30,10 @@ async function getFavoriteGifs() {
   const Frec = root.lookupType("FrecencyUserSettings");
   const dec = Frec.decode(Buffer.from(settings, "base64"));
   const gifs = dec?.favoriteGifs?.gifs ?? {};
-  // sort by stored order so the pack matches your Discord order
-  return Object.values(gifs).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  // keep the map key (canonical url) as a stable id for dedup across runs
+  return Object.entries(gifs)
+    .map(([key, g]) => ({ key, ...g }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 async function download(url) {
@@ -113,7 +115,7 @@ async function main() {
       const kb = ((await stat(outPath)).size / 1024) | 0;
       const over = kb > 500 ? " OVER!" : "";
       console.log(`${tag} ${kind} -> ${id}.webp ${kb}KB${animated ? " animado" : ""}${over}`);
-      manifest.push({ id, name: `gif ${i + 1}`, animated, webp: `gif-webp/${id}.webp` });
+      manifest.push({ id, key: g.key, name: `gif ${i + 1}`, animated, webp: `gif-webp/${id}.webp` });
     } catch (err) {
       console.warn(`${tag} FALLO: ${err.message}`);
       manifest.push({ id, error: err.message });

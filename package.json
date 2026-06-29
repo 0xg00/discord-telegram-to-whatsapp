@@ -5,8 +5,11 @@
   "type": "module",
   "description": "Saca tus stickers favoritos de Discord y los manda como stickers a WhatsApp Web",
   "scripts": {
+    "start": "node src/index.js",
+    "menu": "node src/index.js",
     "pull": "node src/discord.js",
     "pull-gifs": "node src/gifs.js",
+    "pull-telegram": "node src/telegram.js",
     "send": "node src/whatsapp.js",
     "all": "node src/index.js"
   },

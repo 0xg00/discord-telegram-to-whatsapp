@@ -124,7 +124,7 @@ async function main() {
       const note = degraded ? " (animado fallo -> estatico)" : "";
       console.log(`${tag} "${meta.name}" -> webp ${(buffer.length / 1024) | 0}KB${animated ? " animado" : ""}${note}`);
       manifest.push({
-        id, name: meta.name, format_type: meta.format_type,
+        id, key: id, name: meta.name, format_type: meta.format_type,
         animated, webp: `webp/${id}.webp`,
       });
     } catch (err) {

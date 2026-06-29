@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
 import wweb from "whatsapp-web.js";
@@ -57,10 +57,26 @@ client.on("ready", async () => {
   const offset = Number(process.env.OFFSET || 0);
   const delayMs = Number(process.env.DELAY_MS || 2500);
 
+  const force = process.env.FORCE === "1";
+  const stickerAuthor = process.env.STICKER_AUTHOR || "Discord";
+
   const manifestFile = process.env.MANIFEST || "manifest.json";
   let items = JSON.parse(await readFile(join(STICKERS, manifestFile), "utf8")).filter((m) => m.webp);
   if (offset > 0) items = items.slice(offset);
   if (limit > 0) items = items.slice(0, limit);
+
+  // dedup: remember what already reached this target so re-runs don't repeat
+  const SENT = join(STICKERS, "sent.json");
+  let sentDb = {};
+  try { sentDb = JSON.parse(await readFile(SENT, "utf8")); } catch { /* first run */ }
+  const sentSet = new Set(sentDb[target] || []);
+  const keyOf = (m) => m.key || m.id;
+
+  if (!force) {
+    const before = items.length;
+    items = items.filter((m) => !sentSet.has(keyOf(m)));
+    if (before !== items.length) console.log(`Dedup: ${before - items.length} ya enviados, salto`);
+  }
   console.log(`Destino: ${target} | manifest: ${manifestFile} | a mandar: ${items.length}`);
 
   const chat = await client.getChatById(target);
@@ -73,11 +89,16 @@ client.on("ready", async () => {
       const msg = await chat.sendMessage(media, {
         sendMediaAsSticker: true,
         stickerName: m.name,
-        stickerAuthor: "Discord",
+        stickerAuthor,
       });
       sent++;
       const ack = await waitForAck(msg.id._serialized); // block until server confirms
-      if (ack >= 1) acked++;
+      if (ack >= 1) {
+        acked++;
+        sentSet.add(keyOf(m));
+        sentDb[target] = [...sentSet];
+        await writeFile(SENT, JSON.stringify(sentDb, null, 2)); // persist after each delivery
+      }
       console.log(`${tag} enviado ack=${ack}`);
     } catch (err) {
       console.warn(`${tag} FALLO: ${err.message}`);
