@@ -4,5 +4,8 @@ node_modules/
 .wwebjs_cache/
 stickers/raw/
 stickers/webp/
+stickers/gif-raw/
+stickers/gif-webp/
 stickers/manifest.json
+stickers/manifest_gifs.json
 wa-qr.png

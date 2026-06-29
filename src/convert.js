@@ -58,3 +58,36 @@ export async function toStickerWebp(inputPath, formatType) {
 
   return { buffer, animated };
 }
+
+// Convert an arbitrary image file (gif/webp/png/jpg) to a sticker WebP.
+// `animated` decides the byte budget and whether to read all frames.
+export async function imageToStickerWebp(inputPath, animated) {
+  const budget = animated ? MAX_ANIMATED : MAX_STATIC;
+  const base = () =>
+    sharp(inputPath, { animated }).resize(SIZE, SIZE, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    });
+  try {
+    return { buffer: await encodeUnder(base, budget), animated };
+  } catch (err) {
+    if (!animated) throw err;
+    const still = () =>
+      sharp(inputPath).resize(SIZE, SIZE, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      });
+    return { buffer: await encodeUnder(still, MAX_STATIC), animated: false, degraded: true };
+  }
+}
+
+// True if the input has more than one frame (animated gif/webp).
+export async function isAnimated(inputPath) {
+  try {
+    const meta = await sharp(inputPath, { animated: true }).metadata();
+    return (meta.pages ?? 1) > 1;
+  } catch {
+    return false;
+  }
+}
+

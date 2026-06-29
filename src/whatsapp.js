@@ -40,7 +40,9 @@ client.on("ready", async () => {
   const target = process.env.WA_TARGET_CHAT || client.info.wid._serialized;
   console.log(`Mandando stickers a: ${target}`);
 
-  const manifest = JSON.parse(await readFile(join(STICKERS, "manifest.json"), "utf8"));
+  const manifestFile = process.env.MANIFEST || "manifest.json";
+  console.log(`Manifest: ${manifestFile}`);
+  const manifest = JSON.parse(await readFile(join(STICKERS, manifestFile), "utf8"));
   const items = manifest.filter((m) => m.webp);
   console.log(`Stickers a mandar: ${items.length}`);
 

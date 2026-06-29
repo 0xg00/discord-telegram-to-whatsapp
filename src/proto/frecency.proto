@@ -17,7 +17,22 @@ message StickerFrecency {
   map<fixed64, StickerFrecencyItem> stickers = 1;
 }
 
+// favorite GIFs (field 2). format: 1=IMAGE (gif/webp), 2=VIDEO (mp4)
+message FavoriteGIF {
+  int32 format = 1;
+  string src = 2;
+  int32 width = 3;
+  int32 height = 4;
+  int32 order = 5;
+}
+
+message FavoriteGIFs {
+  map<string, FavoriteGIF> gifs = 1;
+  bool hide_tooltip = 2;
+}
+
 message FrecencyUserSettings {
+  FavoriteGIFs favorite_gifs = 2;
   FavoriteStickers favorite_stickers = 3;
   StickerFrecency sticker_frecency = 4;
 }
