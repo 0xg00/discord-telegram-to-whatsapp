@@ -1,16 +1,69 @@
-node_modules/
+# Secrets / env
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials/
+credentials.json
+token.json
+client_secret*.json
+
+# Sessions / auth
+*.session
+*.session-journal
 .wwebjs_auth/
 .wwebjs_cache/
+.tg_session
+.tg_code
+.tg_2fa
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+dist/
+build/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Databases / dumps
+*.sqlite
+*.sqlite3
+*.db
+data/*.json
+data/*.csv
+outputs/
+dossiers/
+downloads/
+
+# Project-specific artifacts
 stickers/raw/
 stickers/webp/
 stickers/gif-raw/
 stickers/gif-webp/
+stickers/tg-raw/
+stickers/tg-webp/
 stickers/manifest.json
 stickers/manifest_gifs.json
 stickers/manifest_telegram.json
 stickers/sent.json
-stickers/tg-raw/
-stickers/tg-webp/
-.tg_session
 wa-qr.png
