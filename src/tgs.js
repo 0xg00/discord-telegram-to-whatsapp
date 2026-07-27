@@ -66,7 +66,7 @@ export async function tgsToFrames(tgsBuf) {
       n++;
     }
     await page.close();
-    if (n === 0) { await rm(dir, { recursive: true, force: true }); throw new Error("tgs sin frames"); }
+    if (n === 0) { await rm(dir, { recursive: true, force: true }); throw new Error("tgs has no frames"); }
     return { dir, pattern: join(dir, "f%04d.png"), framerate: targetFps, frames: n };
   } catch (err) {
     if (!page.isClosed()) await page.close();

@@ -1,41 +1,41 @@
 # Discord favorite stickers -> WhatsApp
 
-Saca tus stickers **favoritos** de Discord (los marcados con estrella), los convierte
-a formato sticker de WhatsApp (WebP 512x512) y los manda a un chat por WhatsApp Web.
+Grabs your **favorite** Discord stickers (the starred ones), converts
+them to WhatsApp sticker format (WebP 512x512) and ships them to a chat via WhatsApp Web.
 
-## Como va
+## How it works
 
-1. `discord.js` lee `GET /users/@me/settings-proto/2` (protobuf `FrecencyUserSettings`),
-   saca los IDs de stickers favoritos, descarga cada asset del CDN y lo convierte a WebP.
-2. `whatsapp.js` arranca WhatsApp Web (`whatsapp-web.js`), pides QR una vez, y manda
-   cada WebP como sticker al chat destino (por defecto, a ti mismo).
+1. `discord.js` reads `GET /users/@me/settings-proto/2` (protobuf `FrecencyUserSettings`),
+   pulls the favorite sticker IDs, downloads each asset from the CDN and converts it to WebP.
+2. `whatsapp.js` boots WhatsApp Web (`whatsapp-web.js`), prompts for the QR once, and sends
+   each WebP as a sticker to the target chat (defaults to yourself).
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env      # rellena DISCORD_TOKEN
+cp .env.example .env      # fill in DISCORD_TOKEN
 ```
 
-`DISCORD_TOKEN` = token de tu cuenta de usuario (no bot). Ver `.env.example` para sacarlo.
+`DISCORD_TOKEN` = your user account token (not a bot). See `.env.example` for how to grab it.
 
-## Uso
+## Usage
 
 ```bash
 npm run pull    # Discord -> stickers/webp/ + manifest.json
-npm run send    # manda a WhatsApp (escanea QR la 1a vez)
-# o todo de una:
+npm run send    # ship to WhatsApp (scan QR the first time)
+# or in one shot:
 npm run all
 ```
 
-## Limitaciones v1
+## v1 limitations
 
-- **Lottie** (stickers Nitro animados): saltados. Necesitan render aparte (puppeteer + lottie-web o rlottie). Fase 2.
-- **No crea "pack" con nombre**: WhatsApp Web solo manda stickers sueltos. Packs reales necesitan app companion Android/iOS.
-- **APNG animado**: si tu build de libvips no lee APNG multi-frame, cae a estatico (1er frame).
+- **Lottie** (Nitro animated stickers): skipped. They need a separate renderer (puppeteer + lottie-web or rlottie). Phase 2.
+- **No named "packs"**: WhatsApp Web only sends loose stickers. Real packs need the companion Android/iOS app.
+- **Animated APNG**: if your libvips build doesn't read multi-frame APNG, it falls back to static (first frame).
 
-## Riesgos
+## Risks
 
-- Token de usuario Discord = selfbot = **contra ToS, posible ban**.
-- `whatsapp-web.js` se rompe cuando WhatsApp Web actualiza. Versions pinneadas; si peta, actualiza la lib.
-- Cuentas y stickers son tuyos, pero el riesgo de baneo existe. Bajo tu responsabilidad.
+- Discord user token = selfbot = **against ToS, ban risk**.
+- `whatsapp-web.js` breaks whenever WhatsApp Web updates. Versions are pinned; if it dies, bump the lib.
+- Accounts and stickers are yours, but the ban risk is real. Use at your own risk.

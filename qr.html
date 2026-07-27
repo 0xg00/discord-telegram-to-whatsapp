@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>WhatsApp QR</title>
@@ -12,10 +12,10 @@
   </style>
 </head>
 <body>
-  <div class="h">Escanea con WhatsApp</div>
-  <div class="s">Móvil → Ajustes → Dispositivos vinculados → Vincular dispositivo</div>
+  <div class="h">Scan with WhatsApp</div>
+  <div class="s">Phone -> Settings -> Linked devices -> Link a device</div>
   <img id="q" src="wa-qr.png" alt="QR">
-  <div class="s">El QR se refresca solo cada 3s — no caduca mientras escaneas</div>
+  <div class="s">The QR auto-refreshes every 3s - it won't expire while you're scanning</div>
   <script>
     setInterval(() => {
       document.getElementById("q").src = "wa-qr.png?t=" + Date.now();

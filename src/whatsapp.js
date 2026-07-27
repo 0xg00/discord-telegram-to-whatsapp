@@ -21,17 +21,17 @@ const client = new Client({
 });
 
 client.on("qr", async (qr) => {
-  console.log("Escanea este QR con WhatsApp (Dispositivos vinculados):\n");
+  console.log("Scan this QR with WhatsApp (Linked devices):\n");
   qrcode.generate(qr, { small: true });
   try {
     await QRCode.toFile(join(ROOT, "wa-qr.png"), qr, { width: 512, margin: 2 });
     console.log("QR PNG -> wa-qr.png");
   } catch (e) {
-    console.warn("no pude escribir wa-qr.png:", e.message);
+    console.warn("could not write wa-qr.png:", e.message);
   }
 });
 
-client.on("auth_failure", (m) => console.error("Auth fallo:", m));
+client.on("auth_failure", (m) => console.error("Auth failed:", m));
 
 // track server ACKs: sendMessage resolves on local queue, NOT on delivery.
 // We must wait for ack >= 1 (server received) or messages get silently dropped.
@@ -49,7 +49,7 @@ function waitForAck(id, ms = 20000) {
 }
 
 client.on("ready", async () => {
-  console.log("WhatsApp listo. Esperando sync...");
+  console.log("WhatsApp ready. Waiting for sync...");
   await sleep(6000); // settle: sending too early drops messages
 
   const limit = Number(process.env.LIMIT || 0);
@@ -73,10 +73,10 @@ client.on("ready", async () => {
     dest = channels.find((c) => c.id?._serialized === want)
       || channels.find((c) => (c.name || "").toLowerCase() === want.toLowerCase());
     if (!dest) {
-      throw new Error(`canal "${want}" no encontrado. Tus canales: ${channels.map((c) => `${c.name} (${c.id?._serialized})`).join(", ") || "ninguno"}`);
+      throw new Error(`channel "${want}" not found. Your channels: ${channels.map((c) => `${c.name} (${c.id?._serialized})`).join(", ") || "none"}`);
     }
     destId = dest.id._serialized;
-    console.log(`Canal: "${dest.name}" (${destId})`);
+    console.log(`Channel: "${dest.name}" (${destId})`);
   } else {
     destId = process.env.WA_TARGET_CHAT || client.info.wid._serialized;
     dest = await client.getChatById(destId);
@@ -97,9 +97,9 @@ client.on("ready", async () => {
   if (!force) {
     const before = items.length;
     items = items.filter((m) => !sentSet.has(keyOf(m)));
-    if (before !== items.length) console.log(`Dedup: ${before - items.length} ya enviados, salto`);
+    if (before !== items.length) console.log(`Dedup: ${before - items.length} already sent, skipping`);
   }
-  console.log(`Destino: ${channelMode ? "CANAL " : ""}${destId} | manifest: ${manifestFile} | a mandar: ${items.length}`);
+  console.log(`Destination: ${channelMode ? "CHANNEL " : ""}${destId} | manifest: ${manifestFile} | to send: ${items.length}`);
 
   const ackTimeout = channelMode ? 8000 : 20000;
 
@@ -123,18 +123,18 @@ client.on("ready", async () => {
         sentDb[destId] = [...sentSet];
         await writeFile(SENT, JSON.stringify(sentDb, null, 2)); // persist after each delivery
       }
-      console.log(`${tag} enviado ack=${ack}${channelMode ? " (canal)" : ""}`);
+      console.log(`${tag} sent ack=${ack}${channelMode ? " (channel)" : ""}`);
     } catch (err) {
-      console.warn(`${tag} FALLO: ${err.message}`);
+      console.warn(`${tag} FAILED: ${err.message}`);
     }
     await sleep(delayMs);
   }
 
-  console.log(`\nListo. enviados=${sent} | confirmados_servidor=${acked}/${items.length}`);
-  console.log("Cierra con Ctrl+C. La sesion queda guardada en .wwebjs_auth");
+  console.log(`\nDone. sent=${sent} | server_acked=${acked}/${items.length}`);
+  console.log("Ctrl+C to close. Session persisted in .wwebjs_auth");
   await client.destroy();
   process.exit(0);
 });
 
-console.log("Arrancando WhatsApp Web...");
+console.log("Booting WhatsApp Web...");
 client.initialize();

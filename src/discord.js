@@ -18,7 +18,7 @@ try { process.loadEnvFile(join(ROOT, ".env")); } catch { /* no .env, use process
 
 const TOKEN = process.env.DISCORD_TOKEN;
 if (!TOKEN) {
-  console.error("ERROR: falta DISCORD_TOKEN. Pon tu token de usuario en .env");
+  console.error("ERROR: DISCORD_TOKEN missing. Put your user token in .env");
   process.exit(1);
 }
 
@@ -31,14 +31,14 @@ async function dapi(url) {
     const res = await fetch(url, { headers: auth });
     if (res.status === 429) {
       const retry = Number(res.headers.get("retry-after") || 1);
-      console.warn(`  rate limited, espero ${retry}s`);
+      console.warn(`  rate limited, waiting ${retry}s`);
       await sleep(retry * 1000 + 250);
       continue;
     }
     if (!res.ok) throw new Error(`${res.status} ${res.statusText} @ ${url}`);
     return res;
   }
-  throw new Error(`rate limit no cede @ ${url}`);
+  throw new Error(`rate limit did not lift @ ${url}`);
 }
 
 const idStr = (id) => (id?.toString ? id.toString() : String(id));
@@ -49,7 +49,7 @@ const idStr = (id) => (id?.toString ? id.toString() : String(id));
 async function getStickerIds() {
   const res = await dapi(`${API}/users/@me/settings-proto/2`);
   const { settings } = await res.json();
-  if (!settings) return { ids: [], source: "ninguno (settings vacio)" };
+  if (!settings) return { ids: [], source: "none (settings empty)" };
 
   const root = await protobuf.load(join(__dirname, "proto", "frecency.proto"));
   const Frec = root.lookupType("FrecencyUserSettings");
@@ -57,7 +57,7 @@ async function getStickerIds() {
 
   // fixed64 come back as Long; snowflakes < 2^63 so toString() is safe
   const fav = (decoded?.favoriteStickers?.stickerIds ?? []).map(idStr);
-  if (fav.length) return { ids: fav, source: "favoritos (estrella)" };
+  if (fav.length) return { ids: fav, source: "favorites (starred)" };
 
   // fallback: stickers you've actually used. protobufjs returns fixed64 map
   // keys as raw 8-byte little-endian strings -> decode to decimal snowflake.
@@ -65,7 +65,7 @@ async function getStickerIds() {
     const b = Buffer.from(k, "latin1");
     return b.length === 8 ? b.readBigUInt64LE(0).toString() : k;
   });
-  return { ids: frec, source: "frecuentes (no tienes favoritos con estrella)" };
+  return { ids: frec, source: "frequently-used (no starred favorites found)" };
 }
 
 // 2. sticker metadata (name + format_type)
@@ -90,11 +90,11 @@ async function main() {
   await mkdir(RAW, { recursive: true });
   await mkdir(WEBP, { recursive: true });
 
-  console.log("Leyendo stickers de tu cuenta...");
+  console.log("Reading stickers from your account...");
   const { ids, source } = await getStickerIds();
-  console.log(`Fuente: ${source} | encontrados: ${ids.length}`);
+  console.log(`Source: ${source} | found: ${ids.length}`);
   if (ids.length === 0) {
-    console.log("Cero stickers. Marca alguno con la estrella en Discord o usa stickers y reintenta.");
+    console.log("Zero stickers. Star some in Discord or send a few and retry.");
     return;
   }
 
@@ -106,7 +106,7 @@ async function main() {
 
       // Lottie (Discord's official animated packs) needs a separate renderer -> phase 2
       if (meta.format_type === FORMAT.LOTTIE) {
-        console.log(`${tag} "${meta.name}" LOTTIE -> saltado (fase 2)`);
+        console.log(`${tag} "${meta.name}" LOTTIE -> skipped (phase 2)`);
         manifest.push({ id, name: meta.name, format_type: meta.format_type, skipped: true });
         await sleep(300);
         continue;
@@ -121,14 +121,14 @@ async function main() {
         meta.format_type
       );
       await writeFile(join(WEBP, `${id}.webp`), buffer);
-      const note = degraded ? " (animado fallo -> estatico)" : "";
-      console.log(`${tag} "${meta.name}" -> webp ${(buffer.length / 1024) | 0}KB${animated ? " animado" : ""}${note}`);
+      const note = degraded ? " (animated failed -> static)" : "";
+      console.log(`${tag} "${meta.name}" -> webp ${(buffer.length / 1024) | 0}KB${animated ? " animated" : ""}${note}`);
       manifest.push({
         id, key: id, name: meta.name, format_type: meta.format_type,
         animated, webp: `webp/${id}.webp`,
       });
     } catch (err) {
-      console.warn(`${tag} FALLO: ${err.message}`);
+      console.warn(`${tag} FAILED: ${err.message}`);
       manifest.push({ id, error: err.message });
     }
     await sleep(300); // be gentle with Discord
@@ -136,9 +136,9 @@ async function main() {
 
   await writeFile(MANIFEST, JSON.stringify(manifest, null, 2));
   const ok = manifest.filter((m) => m.webp).length;
-  console.log(`\nListo. ${ok} stickers convertidos -> stickers/webp/`);
+  console.log(`\nDone. ${ok} stickers converted -> stickers/webp/`);
   console.log(`Manifest: stickers/manifest.json`);
-  console.log(`Siguiente: npm run send`);
+  console.log(`Next: npm run send`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Saca tus stickers favoritos de Discord y los manda como stickers a WhatsApp Web",
+  "description": "Grabs your favorite Discord stickers and ships them as stickers to WhatsApp Web",
   "scripts": {
     "start": "node src/index.js",
     "menu": "node src/index.js",

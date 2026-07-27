@@ -28,7 +28,7 @@ const LIMIT_PACKS = Number(process.env.TG_LIMIT_PACKS || 0);
 const SKIP_PACKS = Number(process.env.TG_SKIP_PACKS || 0);
 
 if (!API_ID || !API_HASH) {
-  console.error("ERROR: falta TG_API_ID / TG_API_HASH en .env (sacalos de my.telegram.org)");
+  console.error("ERROR: TG_API_ID / TG_API_HASH missing in .env (get them from my.telegram.org)");
   process.exit(1);
 }
 
@@ -62,7 +62,7 @@ async function main() {
   async function fromFileOrAsk(file, promptMsg, envVal) {
     if (envVal) return envVal;
     if (stdin.isTTY) return await ask(promptMsg);
-    console.log(`Esperando ${file} (escribe el valor ahi)...`);
+    console.log(`Waiting for ${file} (write the value there)...`);
     for (let i = 0; i < 180; i++) {
       if (existsSync(file)) {
         const v = (await readFile(file, "utf8")).trim();
@@ -70,20 +70,20 @@ async function main() {
       }
       await sleep(1000);
     }
-    throw new Error(`timeout esperando ${file}`);
+    throw new Error(`timeout waiting for ${file}`);
   }
 
-  console.log("Conectando a Telegram...");
+  console.log("Connecting to Telegram...");
   await client.start({
-    phoneNumber: async () => process.env.TG_PHONE || (await ask("Telefono (+34...): ")),
-    password: async () => await fromFileOrAsk(TFA_FILE, "Password 2FA: ", process.env.TG_2FA),
-    phoneCode: async () => await fromFileOrAsk(CODE_FILE, "Codigo recibido en Telegram: "),
-    onError: (e) => console.log("Error login:", e.message),
+    phoneNumber: async () => process.env.TG_PHONE || (await ask("Phone (+1...): ")),
+    password: async () => await fromFileOrAsk(TFA_FILE, "2FA password: ", process.env.TG_2FA),
+    phoneCode: async () => await fromFileOrAsk(CODE_FILE, "Code received in Telegram: "),
+    onError: (e) => console.log("Login error:", e.message),
   });
   await writeFile(SESSION_FILE, String(client.session.save()));
-  console.log("Login OK. Sesion guardada en .tg_session\n");
+  console.log("Login OK. Session saved to .tg_session\n");
 
-  console.log("Listando tus packs de stickers...");
+  console.log("Listing your sticker packs...");
   const all = await client.invoke(new Api.messages.GetAllStickers({ hash: bigInt(0) }));
   let sets = all.sets || [];
   if (SKIP_PACKS > 0) sets = sets.slice(SKIP_PACKS);
@@ -100,7 +100,7 @@ async function main() {
         hash: 0,
       }));
     } catch (err) {
-      console.warn(`pack "${s.title}" FALLO listar: ${err.message}`);
+      console.warn(`pack "${s.title}" FAILED to list: ${err.message}`);
       continue;
     }
     const docs = full.documents || [];
@@ -139,10 +139,10 @@ async function main() {
         }
 
         const kb = ((await stat(outPath)).size / 1024) | 0;
-        console.log(`  [${id}] ${kind} -> ${kb}KB${animated ? " animado" : ""}`);
+        console.log(`  [${id}] ${kind} -> ${kb}KB${animated ? " animated" : ""}`);
         manifest.push({ id, key, name, animated, webp: `tg-webp/${id}.webp` });
       } catch (err) {
-        console.warn(`  [${id}] ${kind} FALLO: ${err.message}`);
+        console.warn(`  [${id}] ${kind} FAILED: ${err.message}`);
         manifest.push({ id, key, error: err.message });
       }
       await sleep(100);
@@ -155,8 +155,8 @@ async function main() {
   rl.close();
 
   const ok = manifest.filter((m) => m.webp).length;
-  console.log(`\nListo. ${ok} stickers convertidos -> stickers/tg-webp/`);
-  console.log("Siguiente: MANIFEST=manifest_telegram.json npm run send");
+  console.log(`\nDone. ${ok} stickers converted -> stickers/tg-webp/`);
+  console.log("Next: MANIFEST=manifest_telegram.json npm run send");
   process.exit(0);
 }
 

@@ -20,37 +20,37 @@ function run(script, env = {}) {
       stdio: "inherit",
       env: { ...process.env, ...env },
     });
-    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${script} salio ${code}`))));
+    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${script} exited ${code}`))));
   });
 }
 
 const rl = readline.createInterface({ input: stdin, output: stdout });
 try {
   console.log("\n=== Discord/Telegram -> WhatsApp stickers ===\n");
-  console.log("Origen:");
+  console.log("Source:");
   for (const [k, s] of Object.entries(SOURCES)) console.log(`  ${k}) ${s.label}`);
   const sKey = (await rl.question("> ")).trim();
   const src = SOURCES[sKey];
-  if (!src) { console.log("Opcion invalida"); process.exit(1); }
+  if (!src) { console.log("Invalid option"); process.exit(1); }
 
-  console.log("\nAccion:");
-  console.log("  1) Sacar + mandar");
-  console.log("  2) Solo sacar (descargar+convertir)");
-  console.log("  3) Solo mandar (lo ya convertido)");
+  console.log("\nAction:");
+  console.log("  1) Pull + send");
+  console.log("  2) Pull only (download+convert)");
+  console.log("  3) Send only (already-converted files)");
   const action = (await rl.question("> ")).trim();
   rl.close();
 
   const pullPath = join(__dirname, src.pull);
   if ((action === "1" || action === "2")) {
-    if (!existsSync(pullPath)) { console.log(`Falta ${src.pull} (origen no implementado aun)`); process.exit(1); }
-    console.log(`\n== Sacando: ${src.label} ==`);
+    if (!existsSync(pullPath)) { console.log(`Missing ${src.pull} (source not implemented yet)`); process.exit(1); }
+    console.log(`\n== Pulling: ${src.label} ==`);
     await run(src.pull);
   }
   if (action === "1" || action === "3") {
-    console.log(`\n== Mandando: ${src.label} ==`);
+    console.log(`\n== Sending: ${src.label} ==`);
     await run("whatsapp.js", { MANIFEST: src.manifest, STICKER_AUTHOR: src.author });
   }
-  console.log("\nHecho.");
+  console.log("\nDone.");
 } finally {
   rl.close();
 }

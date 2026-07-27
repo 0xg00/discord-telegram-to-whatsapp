@@ -28,7 +28,7 @@ async function encodeUnder(makePipeline, budget) {
 // Returns { buffer, animated } or throws.
 export async function toStickerWebp(inputPath, formatType) {
   if (formatType === FORMAT.LOTTIE) {
-    throw new Error("LOTTIE no soportado en v1 (necesita render aparte)");
+    throw new Error("LOTTIE not supported in v1 (needs a separate renderer)");
   }
 
   const animated = formatType === FORMAT.APNG || formatType === FORMAT.GIF;
@@ -103,7 +103,7 @@ function runFfmpeg(inputArgs, vf, quality, outPath) {
   return new Promise((resolve, reject) => {
     const p = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "ignore"] });
     p.on("error", reject);
-    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg salio ${code}`))));
+    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))));
   });
 }
 

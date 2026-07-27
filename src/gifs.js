@@ -15,7 +15,7 @@ const GIF_IMAGE = 1, GIF_VIDEO = 2;
 
 try { process.loadEnvFile(join(ROOT, ".env")); } catch { /* optional */ }
 const TOKEN = process.env.DISCORD_TOKEN;
-if (!TOKEN) { console.error("ERROR: falta DISCORD_TOKEN en .env"); process.exit(1); }
+if (!TOKEN) { console.error("ERROR: DISCORD_TOKEN missing in .env"); process.exit(1); }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -44,10 +44,10 @@ async function main() {
   await mkdir(RAW, { recursive: true });
   await mkdir(WEBP, { recursive: true });
 
-  console.log("Leyendo GIFs favoritos de tu cuenta...");
+  console.log("Reading favorite GIFs from your account...");
   const gifs = await getFavoriteGifs();
-  console.log(`GIFs favoritos: ${gifs.length}`);
-  if (!gifs.length) { console.log("Cero GIFs favoritos."); return; }
+  console.log(`Favorite GIFs: ${gifs.length}`);
+  if (!gifs.length) { console.log("Zero favorite GIFs."); return; }
 
   const manifest = [];
   for (const [i, g] of gifs.entries()) {
@@ -77,10 +77,10 @@ async function main() {
       }
       const kb = ((await stat(outPath)).size / 1024) | 0;
       const over = kb > 500 ? " OVER!" : "";
-      console.log(`${tag} ${kind} -> ${id}.webp ${kb}KB${animated ? " animado" : ""}${over}`);
+      console.log(`${tag} ${kind} -> ${id}.webp ${kb}KB${animated ? " animated" : ""}${over}`);
       manifest.push({ id, key: g.key, name: `gif ${i + 1}`, animated, webp: `gif-webp/${id}.webp` });
     } catch (err) {
-      console.warn(`${tag} FALLO: ${err.message}`);
+      console.warn(`${tag} FAILED: ${err.message}`);
       manifest.push({ id, error: err.message });
     }
     await sleep(150);
@@ -88,8 +88,8 @@ async function main() {
 
   await writeFile(MANIFEST, JSON.stringify(manifest, null, 2));
   const ok = manifest.filter((m) => m.webp).length;
-  console.log(`\nListo. ${ok}/${gifs.length} GIFs convertidos -> stickers/gif-webp/`);
-  console.log("Siguiente: MANIFEST=manifest_gifs.json npm run send");
+  console.log(`\nDone. ${ok}/${gifs.length} GIFs converted -> stickers/gif-webp/`);
+  console.log("Next: MANIFEST=manifest_gifs.json npm run send");
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
